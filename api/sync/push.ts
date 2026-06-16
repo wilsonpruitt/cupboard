@@ -10,6 +10,22 @@ interface Mutation {
   payload?: Record<string, unknown>;
 }
 
+// St. Mark = tenant zero. The device's sync payloads predate multi-tenancy and
+// never send tenant_id, but the tenancy migration made tenant_id NOT NULL on
+// every domain table — so un-stamped inserts were silently rejected. Stamp it
+// here (single-tenant for now; override per-deployment via DEFAULT_TENANT_ID).
+const DEFAULT_TENANT_ID =
+  process.env.DEFAULT_TENANT_ID?.trim() || '04b7516b-5672-4bab-95d0-2ac00974132c';
+
+// Tables whose tenant_id column is NOT NULL and must be stamped on insert.
+const TENANT_SCOPED = new Set([
+  'pantry_clients',
+  'pantry_visits',
+  'pantry_volunteer_shifts',
+  'volunteers',
+  'signups',
+]);
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -30,6 +46,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const supabase = getSupabase();
     let processed = 0;
     let failed = 0;
+    // ids the device must KEEP queued because they did not land (retry next sync).
+    // Prevents the old bug where a rejected batch still returned 200 and the
+    // device dropped the records from its outbox → silent data loss.
+    const failedIds: string[] = [];
 
     // Group mutations by table for batch operations
     const grouped: Record<string, { upserts: Record<string, unknown>[]; deletes: string[] }> = {};
@@ -44,6 +64,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         grouped[supaTable].deletes.push(mut.id);
       } else if (mut.payload) {
         const dbRecord = toDB(mut.table, mut.payload);
+        if (TENANT_SCOPED.has(supaTable) && dbRecord.tenant_id == null) {
+          dbRecord.tenant_id = DEFAULT_TENANT_ID;
+        }
         grouped[supaTable].upserts.push(dbRecord);
       }
     }
@@ -59,6 +82,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (error) {
           console.error(`Push upsert error (${supaTable}):`, error);
           failed += batch.length;
+          for (const row of batch) {
+            if (typeof row.id === 'string') failedIds.push(row.id);
+          }
         } else {
           processed += batch.length;
         }
@@ -74,13 +100,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (error) {
           console.error(`Push delete error (${supaTable}):`, error);
           failed += deletes.length;
+          failedIds.push(...deletes);
         } else {
           processed += deletes.length;
         }
       }
     }
 
-    return res.status(200).json({ ok: true, processed, failed });
+    return res.status(200).json({ ok: failed === 0, processed, failed, failedIds });
   } catch (err) {
     console.error('Push sync error:', err);
     return res.status(500).json({ error: 'Internal server error' });

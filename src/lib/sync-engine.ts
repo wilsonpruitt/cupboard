@@ -15,6 +15,12 @@ type Listener = () => void;
 
 const LAST_SYNC_KEY = 'pantry-last-sync';
 const SEEDED_KEY = 'pantry-cloud-seeded';
+// One-time recovery: the tenancy migration silently rejected every insert that
+// lacked a tenant_id, and the old push API returned 200 anyway, so the device
+// dropped those records from its outbox. Once the tenant-stamping fix is live,
+// re-enqueue all local records once so the stranded rows (≈ everything since
+// early May 2026) flow back up to Supabase. Bump the suffix to force again.
+const RESEED_KEY = 'pantry-cloud-reseed-tenant-fix-1';
 
 class SyncEngine {
   private status: SyncStatus = {
@@ -104,6 +110,12 @@ class SyncEngine {
       if (!localStorage.getItem(SEEDED_KEY)) {
         await this.seedInitialData();
         localStorage.setItem(SEEDED_KEY, '1');
+      } else if (!localStorage.getItem(RESEED_KEY)) {
+        // Already seeded on an older build → re-enqueue everything once so the
+        // records stranded by the tenant_id bug get re-pushed (idempotent
+        // upserts, so existing cloud rows are unaffected).
+        await this.seedInitialData();
+        localStorage.setItem(RESEED_KEY, '1');
       }
 
       await this.push();
@@ -131,6 +143,10 @@ class SyncEngine {
     }
   }
 
+  // Keep each request well under the server's 500-mutation cap. A full
+  // re-seed enqueues every local record at once, so the push must chunk.
+  private static readonly PUSH_CHUNK = 200;
+
   private async push(): Promise<void> {
     const entries = await getPending();
     if (entries.length === 0) return;
@@ -147,37 +163,58 @@ class SyncEngine {
       const key = `${entry.tableName}:${entry.recordId}`;
       deduped.set(key, entry);
     }
+    const unique = Array.from(deduped.values());
 
-    const mutations = Array.from(deduped.values()).map((entry) => ({
-      table: entry.tableName,
-      id: entry.recordId,
-      action: entry.action,
-      payload: entry.payload,
-    }));
+    // Track which table:id pairs actually landed, so we only clear those from
+    // the outbox. Records the server rejected stay queued and retry next sync
+    // (no more silent drops).
+    const succeeded = new Set<string>();
 
-    let res = await fetch('/api/sync/push', {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ mutations }),
-    });
+    for (let i = 0; i < unique.length; i += SyncEngine.PUSH_CHUNK) {
+      const slice = unique.slice(i, i + SyncEngine.PUSH_CHUNK);
+      const mutations = slice.map((entry) => ({
+        table: entry.tableName,
+        id: entry.recordId,
+        action: entry.action,
+        payload: entry.payload,
+      }));
 
-    // If 401, re-authenticate and retry once
-    if (res.status === 401) {
-      localStorage.removeItem('pantry-api-key');
-      await this.ensureApiKey();
-      res = await fetch('/api/sync/push', {
+      let res = await fetch('/api/sync/push', {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({ mutations }),
       });
+
+      // If 401, re-authenticate and retry once
+      if (res.status === 401) {
+        localStorage.removeItem('pantry-api-key');
+        await this.ensureApiKey();
+        res = await fetch('/api/sync/push', {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ mutations }),
+        });
+      }
+
+      if (!res.ok) {
+        throw new Error(`Push failed: ${res.status}`);
+      }
+
+      const body = (await res.json().catch(() => ({}))) as { failedIds?: string[] };
+      const failedIds = new Set(body.failedIds ?? []);
+      for (const entry of slice) {
+        if (!failedIds.has(entry.recordId)) {
+          succeeded.add(`${entry.tableName}:${entry.recordId}`);
+        }
+      }
     }
 
-    if (!res.ok) {
-      throw new Error(`Push failed: ${res.status}`);
-    }
-
-    // Remove all processed entries
-    const seqNos = entries.map((e) => e.seqNo!).filter(Boolean);
+    // Remove every queue entry (including pre-dedup duplicates) whose record
+    // landed. Failed records keep their entries and retry on the next sync.
+    const seqNos = entries
+      .filter((e) => succeeded.has(`${e.tableName}:${e.recordId}`))
+      .map((e) => e.seqNo!)
+      .filter(Boolean);
     if (seqNos.length > 0) {
       await removeBatch(seqNos);
     }
