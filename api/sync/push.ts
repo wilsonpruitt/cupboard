@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabase } from '../../lib/supabase.js';
-import { requireAuth } from '../lib/require-auth.js';
-import { getSupabaseTable, toDB } from '../lib/field-map.js';
+import { requireAuth } from '../_lib/require-auth.js';
+import { getSupabaseTable, toDB } from '../_lib/field-map.js';
 
 interface Mutation {
   table: string;

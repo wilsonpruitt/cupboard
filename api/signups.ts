@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabase } from '../lib/supabase.js';
 import { getResend, FROM_EMAIL } from '../lib/resend.js';
 import { confirmationEmail } from '../lib/emails.js';
-import { requireAuth, isValidUUID } from './lib/require-auth.js';
+import { requireAuth, isValidUUID } from './_lib/require-auth.js';
 
 interface SignupBody {
   signupId: string;

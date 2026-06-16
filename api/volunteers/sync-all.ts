@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabase } from '../../lib/supabase.js';
-import { requireAuth, isValidUUID } from '../lib/require-auth.js';
+import { requireAuth, isValidUUID } from '../_lib/require-auth.js';
 
 interface VolunteerData {
   id: string;
