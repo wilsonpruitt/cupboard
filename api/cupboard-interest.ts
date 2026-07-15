@@ -8,6 +8,8 @@ interface InterestBody {
   organization?: string;
   program?: string;
   notes?: string;
+  source?: string;
+  planSummary?: string;
 }
 
 function escape(s: string): string {
@@ -27,6 +29,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const organization = (body.organization ?? '').trim();
   const program = (body.program ?? '').trim();
   const notes = (body.notes ?? '').trim();
+  const source = (body.source ?? '').trim();
+  const planSummary = (body.planSummary ?? '').trim();
 
   const html = `
     <div style="font-family: -apple-system, system-ui, sans-serif; line-height: 1.5;">
@@ -37,6 +41,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         <tr><td><strong>Organization</strong></td><td>${escape(organization) || '<em>—</em>'}</td></tr>
         <tr><td><strong>Program</strong></td><td>${escape(program) || '<em>—</em>'}</td></tr>
         <tr><td valign="top"><strong>Notes</strong></td><td>${notes ? escape(notes).replace(/\n/g, '<br>') : '<em>—</em>'}</td></tr>
+        ${source ? `<tr><td><strong>Source</strong></td><td>${escape(source)}</td></tr>` : ''}
+        ${planSummary ? `<tr><td valign="top"><strong>Plan</strong></td><td>${escape(planSummary)}</td></tr>` : ''}
       </table>
     </div>
   `;
@@ -66,6 +72,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       organization: organization || null,
       program: program || null,
       notes: notes || null,
+      source: source || null,
+      plan_summary: planSummary || null,
       emailed,
     });
     if (error) console.error('cupboard_interest insert error:', error);
