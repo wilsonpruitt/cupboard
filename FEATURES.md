@@ -1,6 +1,6 @@
-# St. Mark Legacy Food Pantry — Features
+# Cupboard — Features
 
-> Offline-first PWA for food pantry client & volunteer tracking at St. Mark UMC
+> Offline-first PWA for client & volunteer tracking at small feeding ministries (pantries, soup kitchens, backpack programs). St. Mark UMC's pantry is tenant zero.
 > Version: v1.0.0 | Stack: React 19, Vite 7, TypeScript, Dexie.js (IndexedDB), Tailwind CSS 4, shadcn/ui
 
 ---

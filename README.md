@@ -1,73 +1,33 @@
-# React + TypeScript + Vite
+# Cupboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Offline-first PWA for client & volunteer tracking at small feeding ministries — pantries, soup kitchens, backpack programs, mobile distributions. Built by Wroot Labs.
 
-Currently, two official plugins are available:
+St. Mark UMC's food pantry runs this in production as tenant zero (`stmark.cupboard.cc`).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Stack
 
-## React Compiler
+React 19, Vite 7, TypeScript, Dexie.js (IndexedDB as source of truth) with a Supabase mirror for multi-device sync, Tailwind CSS 4, shadcn/ui.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Sites in this repo
 
-## Expanding the ESLint configuration
+- `stmark.cupboard.cc` / `{tenant}.cupboard.cc` — the app itself (tenant-scoped, `src/`)
+- `cupboard.cc` — marketing landing (`public/cupboard/`)
+- `start.cupboard.cc` — interactive "Start a Pantry" guide, public lead-gen (`src/components/startup-guide/`)
+- `stmarklegacy.org` — St. Mark's own site (`public/site/`)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Host routing lives in `middleware.ts`.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Docs
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- `docs/cupboard-product-spec.md` — product spec and build sequence
+- `FEATURES.md` — feature inventory
+- `CLAUDE.md` — project instructions for Claude Code
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Development
+
+```bash
+pnpm install
+pnpm dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+`pnpm test` runs vitest, `pnpm lint` runs eslint, `pnpm build` type-checks and builds.

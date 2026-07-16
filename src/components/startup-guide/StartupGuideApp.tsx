@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useGuideState } from './useGuideState'
 import { CoreModel } from './CoreModel'
 import { PermitFinder } from './PermitFinder'
@@ -17,6 +18,10 @@ const SECTIONS = [
 
 export function StartupGuideApp() {
   const { state, update, toggleChecked, setPermitAnswer } = useGuideState()
+
+  useEffect(() => {
+    document.title = 'Start a Pantry — Cupboard'
+  }, [])
 
   return (
     <div className="min-h-svh bg-background">
