@@ -266,6 +266,14 @@ Steps 1–8 are the paying-pantry MVP. Steps 9–10 open the meal-program market
 
 ## 11. Open questions
 
+### Resolved (2026-07-20)
+
+- **Branding / umbrella-vs-tenant tension — RESOLVED.** Cupboard owns the *outside*, the tenant owns the *inside*. Three surfaces: (1) **in-app** = the tenant's brand — pantry name (done, `settings.pantryName`), + **logo**, + **accent color**; capped there — **no full white-label** (over-engineering for feeding ministries). (2) **cupboard.cc** = Cupboard's brand — marketing, pricing, signup, and the public pantry *directory* (a Cupboard-owned network asset, not a per-tenant feature). (3) a small **"Powered by Cupboard"** in-app footer = the one discovery hook. Mechanics: add `logo_url` + `accent_color` to the `tenants` row; the existing seed-once reconciler (Track A #3) pours them into local `PantrySettings` on first load — no new machinery.
+- **Domain / directory strategy — RESOLVED.** Default every tenant to `{slug}.cupboard.cc`, baked into onboarding. A tenant's **own custom domain** (e.g. `stmarklegacy.org`) = a **Pro add-on alias**, opt-in, not the default (each needs a manual `vercel domains add` + cert).
+- **Repo identity — RESOLVED & DONE 2026-07-20.** Renamed `st-mark-pantry` → **`cupboard`** at every layer: local folder `~/cupboard/`, GitHub `wilsonpruitt/cupboard` (old URL redirects), local `origin` remote, `repos.csv`, and memory path refs. `package.json` name was already `cupboard`. **Vercel project label intentionally left `st-mark-pantry`** (cosmetic only; `projectId`/deploy links unaffected). *Sequencing note: this was tidy-up; the real priority remains the tenant-migration bugs (T1/T2/T3 — volunteer signups silently dropping on `stmarklegacy.org`) before onboarding tenant #2.*
+
+### Open
+
 - Does "Cupboard" read too narrow for meal-program customers? Check in first 10 conversations.
 - Do any states mandate income-dollar-amount collection beyond self-attestation? Needs per-state research before TEFAP launch.
 - How to handle the partial-TEFAP pantry cleanly? Over-collect vs. per-visit flag. Tabled until a real pantry asks.
