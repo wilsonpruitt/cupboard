@@ -7,6 +7,7 @@ import { CheckInPage } from '@/components/checkin/CheckInPage'
 import { ClientListPage } from '@/components/clients/ClientListPage'
 import { ClientDetail } from '@/components/clients/ClientDetail'
 import { ClientForm } from '@/components/clients/ClientForm'
+import { PrintAllCards } from '@/components/clients/PrintAllCards'
 import { VolunteerListPage } from '@/components/volunteers/VolunteerListPage'
 import { VolunteerDetail } from '@/components/volunteers/VolunteerDetail'
 import { VolunteerForm } from '@/components/volunteers/VolunteerForm'
@@ -176,6 +177,7 @@ export function App() {
         <Route path="checkin" element={<CheckInPage />} />
         <Route path="clients" element={<ClientListPage />} />
         <Route path="clients/new" element={<ClientForm />} />
+        <Route path="clients/print-cards" element={<PrintAllCards />} />
 <Route path="clients/:id" element={<ClientDetail />} />
         <Route path="clients/:id/edit" element={<ClientForm />} />
         <Route path="volunteers" element={<VolunteerListPage />} />

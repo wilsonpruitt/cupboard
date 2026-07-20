@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { Printer } from 'lucide-react';
+import { useSettings } from '@/contexts/SettingsContext';
 import type { Client } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -13,6 +14,7 @@ interface ClientQRCardProps {
 }
 
 export function ClientQRCard({ client }: ClientQRCardProps) {
+  const { settings } = useSettings();
   const printRef = useRef<HTMLDivElement>(null);
 
   function handlePrint() {
@@ -75,7 +77,7 @@ export function ClientQRCard({ client }: ClientQRCardProps) {
           <div className="bg-white p-4 rounded-lg border shadow-sm">
             <div className="text-center space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                St. Mark Legacy Food Pantry
+                {settings.pantryName}
               </p>
               <QRCodeSVG value={client.id} size={120} level="M" />
               <p className="text-lg font-bold">
@@ -93,42 +95,6 @@ export function ClientQRCard({ client }: ClientQRCardProps) {
         <Printer className="size-4" />
         Print Card
       </Button>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Batch QR Cards (for printing multiple cards)
-// ---------------------------------------------------------------------------
-
-interface ClientQRCardBatchProps {
-  clients: Client[];
-}
-
-export function ClientQRCardBatch({ clients }: ClientQRCardBatchProps) {
-  return (
-    <div className="qr-batch-grid grid grid-cols-2 gap-4 print:gap-0">
-      {clients.map((client) => (
-        <div
-          key={client.id}
-          className="qr-batch-card bg-white p-4 rounded-lg border shadow-sm print:border print:shadow-none print:rounded-none"
-        >
-          <div className="text-center space-y-1.5">
-            <p className="text-[9px] font-medium text-muted-foreground uppercase tracking-wider print:text-black/60">
-              St. Mark Legacy Food Pantry
-            </p>
-            <div className="flex justify-center">
-              <QRCodeSVG value={client.id} size={100} level="M" />
-            </div>
-            <p className="text-sm font-bold print:text-black">
-              {client.firstName} {client.lastName}
-            </p>
-            <p className="text-xs text-muted-foreground print:text-black/60">
-              Family of {client.numberInFamily}
-            </p>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

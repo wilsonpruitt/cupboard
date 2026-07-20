@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/database';
 import { enqueue } from '@/lib/sync-queue';
 import { Link } from 'react-router-dom';
-import { Search, UserPlus } from 'lucide-react';
+import { Search, UserPlus, QrCode, Keyboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import { searchClients } from '@/utils/search';
 import { getTodayISO } from '@/utils/dateHelpers';
 import TodaysList from './TodaysList';
 import { ItemsReceivedDialog } from './ItemsReceivedDialog';
+import { QRScanner } from './QRScanner';
 import type { Client, PantryDay, Volunteer } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -64,6 +65,9 @@ export function CheckInPage() {
   // --- Search state ---
   const [searchQuery, setSearchQuery] = useState('');
   const searchRef = useRef<HTMLInputElement>(null);
+
+  // --- Check-in mode (search vs QR scan) ---
+  const [mode, setMode] = useState<'search' | 'scan'>('search');
 
   // --- Items received dialog state ---
   const [itemsDialogOpen, setItemsDialogOpen] = useState(false);
@@ -201,7 +205,47 @@ export function CheckInPage() {
         </div>
       </div>
 
+      {/* ---- Mode toggle ---- */}
+      <div className="flex items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => setMode('search')}
+          aria-pressed={mode === 'search'}
+          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            mode === 'search'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+          }`}
+        >
+          <Keyboard className="size-4" />
+          Search
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode('scan')}
+          aria-pressed={mode === 'scan'}
+          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
+            mode === 'scan'
+              ? 'bg-primary text-primary-foreground shadow-sm'
+              : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+          }`}
+        >
+          <QrCode className="size-4" />
+          Scan QR
+        </button>
+      </div>
+
+      {/* ---- Scan section ---- */}
+      {mode === 'scan' && (
+        <QRScanner
+          selectedDay={selectedDay}
+          selectedDate={selectedDate}
+          onCheckIn={handleCheckIn}
+        />
+      )}
+
       {/* ---- Search section ---- */}
+      {mode === 'search' && (
       <div className="space-y-2">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" />
@@ -274,6 +318,7 @@ export function CheckInPage() {
           </Card>
         )}
       </div>
+      )}
 
       {/* ---- Today's visitors ---- */}
       <Card>

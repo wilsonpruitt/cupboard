@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/db/database';
 import { approxAgeFromDob } from '@/lib/family';
-import { ArrowLeft, Phone, Mail, MapPin, Pencil, Trash2, Users, AlertTriangle, Snowflake } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, MapPin, Pencil, Trash2, Users, AlertTriangle, Snowflake, QrCode } from 'lucide-react';
+import { ClientQRCard } from '@/components/clients/ClientQRCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ export function ClientDetail() {
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
 
 
   const today = getTodayISO();
@@ -116,6 +118,24 @@ export function ClientDetail() {
           Back
         </Button>
         <div className="flex items-center gap-2">
+          <Dialog open={qrOpen} onOpenChange={setQrOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm">
+                <QrCode className="size-4" />
+                <span className="hidden sm:inline">QR Card</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Check-in QR Card</DialogTitle>
+                <DialogDescription>
+                  Print this card for {fullName} to use at check-in.
+                </DialogDescription>
+              </DialogHeader>
+              <ClientQRCard client={client} />
+            </DialogContent>
+          </Dialog>
+
           <Button variant="outline" size="sm" asChild>
             <Link to={`/clients/${id}/edit`}>
               <Pencil className="size-4" />

@@ -8,10 +8,12 @@ import { Printer, ArrowLeft, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { searchClients } from '@/utils/search';
+import { useSettings } from '@/contexts/SettingsContext';
 import type { Client } from '@/types';
 
 export function PrintAllCards() {
   const navigate = useNavigate();
+  const { settings } = useSettings();
   const [query, setQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const printRef = useRef<HTMLDivElement>(null);
@@ -223,7 +225,7 @@ export function PrintAllCards() {
         <div className="card-grid">
           {clientsToPrint.map((client) => (
             <div key={client.id} className="qr-card">
-              <div className="header">St. Mark Legacy Food Pantry</div>
+              <div className="header">{settings.pantryName}</div>
               <QRCodeSVG value={client.id} size={90} level="M" />
               <div className="name">
                 {client.firstName} {client.lastName}
