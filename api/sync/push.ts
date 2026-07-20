@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabase } from '../../lib/supabase.js';
 import { requireAuth } from '../_lib/require-auth.js';
 import { getSupabaseTable, toDB } from '../_lib/field-map.js';
+import { DEFAULT_TENANT_ID } from '../_lib/tenant.js';
 
 interface Mutation {
   table: string;
@@ -9,13 +10,6 @@ interface Mutation {
   action: 'upsert' | 'delete';
   payload?: Record<string, unknown>;
 }
-
-// St. Mark = tenant zero. The device's sync payloads predate multi-tenancy and
-// never send tenant_id, but the tenancy migration made tenant_id NOT NULL on
-// every domain table — so un-stamped inserts were silently rejected. Stamp it
-// here (single-tenant for now; override per-deployment via DEFAULT_TENANT_ID).
-const DEFAULT_TENANT_ID =
-  process.env.DEFAULT_TENANT_ID?.trim() || '04b7516b-5672-4bab-95d0-2ac00974132c';
 
 // Tables whose tenant_id column is NOT NULL and must be stamped on insert.
 const TENANT_SCOPED = new Set([

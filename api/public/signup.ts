@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabase } from '../../lib/supabase.js';
 import { getResend, FROM_EMAIL } from '../../lib/resend.js';
 import { publicConfirmationEmail } from '../../lib/emails.js';
+import { DEFAULT_TENANT_ID } from '../_lib/tenant.js';
 
 interface SignupDate {
   date: string;
@@ -78,8 +79,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else {
       // Create new volunteer
       volunteerId = crypto.randomUUID();
-      await supabase.from('volunteers').insert({
+      const { error: volError } = await supabase.from('volunteers').insert({
         id: volunteerId,
+        tenant_id: DEFAULT_TENANT_ID,
         first_name: firstName,
         last_name: lastName,
         email: emailLower,
@@ -88,10 +90,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         recurring_slots: [],
         synced_at: now,
       });
+      // A dropped volunteer means every signup below would be orphaned, and the
+      // confirmation email would lie. Fail loudly instead — the tenancy migration
+      // once broke this path silently (missing tenant_id → 23502, ignored).
+      if (volError) {
+        console.error('Public signup: volunteer insert failed:', volError);
+        return res.status(500).json({ error: 'Could not save signup. Please try again.' });
+      }
     }
 
     // ---- Create signups (dedup by volunteer+date) ----
     let signupCount = 0;
+    let signupFailed = 0;
 
     for (const d of dates) {
       // Check for existing signup
@@ -106,8 +116,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         continue; // Skip duplicate
       }
 
-      await supabase.from('signups').insert({
+      const { error: signupError } = await supabase.from('signups').insert({
         id: crypto.randomUUID(),
+        tenant_id: DEFAULT_TENANT_ID,
         volunteer_id: volunteerId,
         date: d.date,
         day_of_week: d.dayOfWeek,
@@ -115,7 +126,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         status: 'signed-up',
         created_at: now,
       });
+      if (signupError) {
+        console.error('Public signup: signup insert failed for', d.date, signupError);
+        signupFailed++;
+        continue;
+      }
       signupCount++;
+    }
+
+    // If every date failed to persist, don't send a "you're confirmed" email —
+    // that was the old silent-failure behavior. Surface it so the volunteer retries.
+    if (signupCount === 0 && signupFailed > 0) {
+      return res.status(500).json({ error: 'Could not save signup. Please try again.' });
     }
 
     // ---- Send single confirmation email ----

@@ -3,6 +3,7 @@ import { getSupabase } from '../lib/supabase.js';
 import { getResend, FROM_EMAIL } from '../lib/resend.js';
 import { confirmationEmail } from '../lib/emails.js';
 import { requireAuth, isValidUUID } from './_lib/require-auth.js';
+import { DEFAULT_TENANT_ID } from './_lib/tenant.js';
 
 interface SignupBody {
   signupId: string;
@@ -35,9 +36,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Invalid ID format' });
     }
 
-    // Upsert volunteer
-    await getSupabase().from('volunteers').upsert({
+    // Upsert volunteer. tenant_id is NOT NULL post-migration; omitting it makes
+    // the insert fail (23502) — check the error instead of swallowing it.
+    const { error: volError } = await getSupabase().from('volunteers').upsert({
       id: volunteerId,
+      tenant_id: DEFAULT_TENANT_ID,
       first_name: firstName,
       last_name: lastName,
       email: email || null,
@@ -45,10 +48,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       recurring_slots: recurringSlots || [],
       synced_at: new Date().toISOString(),
     }, { onConflict: 'id' });
+    if (volError) {
+      console.error('Signup API: volunteer upsert failed:', volError);
+      return res.status(500).json({ error: 'Could not save volunteer' });
+    }
 
     // Upsert signup
-    await getSupabase().from('signups').upsert({
+    const { error: signupError } = await getSupabase().from('signups').upsert({
       id: signupId,
+      tenant_id: DEFAULT_TENANT_ID,
       volunteer_id: volunteerId,
       date,
       day_of_week: dayOfWeek,
@@ -56,6 +64,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       status: 'signed-up',
       created_at: new Date().toISOString(),
     }, { onConflict: 'id' });
+    if (signupError) {
+      console.error('Signup API: signup upsert failed:', signupError);
+      return res.status(500).json({ error: 'Could not save signup' });
+    }
 
     // Send confirmation email if volunteer has email
     let emailSent = false;
