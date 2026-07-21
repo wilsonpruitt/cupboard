@@ -1,5 +1,24 @@
 # Volunteer QR Check-In — build plan
 
+> **SUPERSEDED 2026-07-20.** The feature shipped the same day this plan was written (commits
+> `a5e27c9`, `864b5f8`, `dcdaf32`), built fresh from a live conversation with Wilson rather than
+> from this doc — this handoff was never consulted mid-build. Live-verified against the real
+> deployed endpoint (`scripts/verify-volunteer-checkin.ts`): a diagnostic check-in landed with the
+> correct `tenant_id` on both `volunteers` and `pantry_volunteer_shifts`, a re-post correctly
+> no-opped as `alreadyCheckedIn`, and the diagnostic rows were deleted after confirming. What
+> shipped differs from the plan below in three ways, kept intentionally rather than reconciled:
+> - **Routing:** a standalone static page `public/site/volunteer-checkin.html` (same `/site/*`
+>   passthrough as the existing volunteer sign-up page), not a `/checkin` path routed through
+>   `main.tsx`.
+> - **Search scope:** free-text name search across *all* volunteers (first+last), not tap-chips
+>   limited to *today's already-signed-up* roster. Chosen deliberately — it also covers walk-ins
+>   and irregulars who never pre-signed-up, which the roster-only design couldn't.
+> - **Timezone:** trusts the phone's local clock rather than forcing America/Chicago. Equivalent
+>   in practice since the phone is physically at the pantry, but not the same hard guarantee.
+>
+> See `cupboard-product.md` memory (topic file, not this doc) for the live status. The plan below
+> is kept for historical context only — do not build against it.
+
 > **BUILD-READY HANDOFF (for a Sonnet session).** Scope, data model, and decisions are all settled
 > below — nothing left to design. Build the 6 steps in order, then run the verification checklist at
 > the bottom. Use the **`wroot-labs-design`** skill for Fen & Ink styling. Don't re-open the locked
