@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSupabase } from '../lib/supabase.js';
 import { getResend, FROM_EMAIL } from '../lib/resend.js';
-import { confirmationEmail } from '../lib/emails.js';
+import { confirmationEmail, cancellationEmail } from '../lib/emails.js';
 import { requireAuth, isValidUUID } from './_lib/require-auth.js';
 import { DEFAULT_TENANT_ID } from './_lib/tenant.js';
 
@@ -18,11 +18,79 @@ interface SignupBody {
   recurringSlots?: string[];
 }
 
+interface CancelBody {
+  cancel: true;
+  signupId?: string;
+  volunteerId: string;
+  date: string;
+  dayOfWeek: string;
+}
+
+// Merged with the former api/signups/cancel.ts to stay under the Hobby plan's
+// 12-serverless-function cap — dispatch on body.cancel rather than a second file.
+async function handleCancel(req: VercelRequest, res: VercelResponse) {
+  const body = req.body as CancelBody;
+  const { signupId, volunteerId, date, dayOfWeek } = body;
+
+  if (!volunteerId || !date || !dayOfWeek) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  if (!isValidUUID(volunteerId) || (signupId && !isValidUUID(signupId))) {
+    return res.status(400).json({ error: 'Invalid ID format' });
+  }
+
+  if (signupId) {
+    // Delete the one-off signup
+    await getSupabase().from('signups').delete().eq('id', signupId);
+  } else {
+    // Recurring excuse — upsert a cancelled record
+    await getSupabase().from('signups').upsert({
+      id: crypto.randomUUID(),
+      volunteer_id: volunteerId,
+      date,
+      day_of_week: dayOfWeek,
+      status: 'cancelled',
+      created_at: new Date().toISOString(),
+    });
+  }
+
+  // Send cancellation email if volunteer has email
+  let emailSent = false;
+  const { data: volunteer } = await getSupabase()
+    .from('volunteers')
+    .select('first_name, email')
+    .eq('id', volunteerId)
+    .single();
+
+  if (volunteer?.email) {
+    const { subject, html } = cancellationEmail(volunteer.first_name, date, dayOfWeek);
+    const { error: emailError } = await getResend().emails.send({
+      from: FROM_EMAIL,
+      to: volunteer.email,
+      subject,
+      html,
+    });
+    emailSent = !emailError;
+  }
+
+  return res.status(200).json({ ok: true, emailSent });
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
   if (!requireAuth(req, res)) return;
+
+  if ((req.body as { cancel?: boolean })?.cancel) {
+    try {
+      return await handleCancel(req, res);
+    } catch (err) {
+      console.error('Cancel API error:', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
 
   try {
     const body = req.body as SignupBody;

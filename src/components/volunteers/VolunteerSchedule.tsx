@@ -234,7 +234,7 @@ export function VolunteerSchedule() {
 
     // Fire-and-forget cancellation notification
     if (settings.notificationsEnabled) {
-      apiPost('/api/signups/cancel', { volunteerId, date, dayOfWeek });
+      apiPost('/api/signups', { cancel: true, volunteerId, date, dayOfWeek });
     }
   }
 
@@ -244,7 +244,7 @@ export function VolunteerSchedule() {
 
     // Fire-and-forget cancellation notification
     if (settings.notificationsEnabled) {
-      apiPost('/api/signups/cancel', { signupId, volunteerId, date, dayOfWeek });
+      apiPost('/api/signups', { cancel: true, signupId, volunteerId, date, dayOfWeek });
     }
   }
 
