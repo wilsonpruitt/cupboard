@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volunteer Check-In – St. Mark Legacy Food Pantry</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <style>
+    body {
+      display: flex;
+      min-height: 100svh;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+    }
+
+    .kiosk-card {
+      width: 100%;
+      max-width: 420px;
+      background: white;
+      border-radius: 16px;
+      padding: 2rem 1.75rem;
+      box-shadow: 0 4px 24px rgba(45, 90, 71, 0.12);
+      border: 1px solid rgba(45, 90, 71, 0.08);
+      text-align: center;
+    }
+
+    .kiosk-card .leaf-icon {
+      font-size: 2.25rem;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .kiosk-card h1 {
+      font-family: 'Playfair Display', Georgia, serif;
+      color: var(--deep-green);
+      font-size: 1.5rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .kiosk-card .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1.5rem;
+    }
+
+    #search-input {
+      font-size: 1.1rem;
+      padding: 0.9rem 1rem;
+      text-align: center;
+    }
+
+    #matches {
+      margin-top: 0.75rem;
+      text-align: left;
+    }
+
+    .match-row {
+      width: 100%;
+      display: block;
+      background: var(--warm-cream);
+      border: 1px solid rgba(45, 90, 71, 0.15);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.5rem;
+      font-family: inherit;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-dark);
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .match-row:hover, .match-row:active {
+      border-color: var(--soft-green);
+      background: #f0fdf4;
+    }
+
+    #not-me-link {
+      display: inline-block;
+      margin-top: 1rem;
+      color: var(--soft-green);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: underline;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    #new-volunteer-form {
+      display: none;
+      margin-top: 1.25rem;
+      text-align: left;
+    }
+
+    #new-volunteer-form .form-group {
+      margin-bottom: 0.85rem;
+    }
+
+    .status-msg {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      min-height: 1.2em;
+    }
+
+    .status-msg.error {
+      color: #b91c1c;
+    }
+
+    #confirmation {
+      display: none;
+    }
+
+    #confirmation .check-icon {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    #confirmation h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      color: var(--deep-green);
+      font-size: 1.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    #confirmation p {
+      color: var(--text-muted);
+    }
+
+    #check-in-another {
+      margin-top: 1.5rem;
+    }
+
+    #not-pantry-day {
+      display: none;
+    }
+
+    .hp-field {
+      position: absolute;
+      left: -9999px;
+    }
+  </style>
+</head>
+<body>
+  <div class="kiosk-card">
+
+    <div id="checkin-flow">
+      <span class="leaf-icon">🤝</span>
+      <h1>Volunteer Check-In</h1>
+      <p class="subtitle">Type your name to check in for today's shift</p>
+
+      <input type="text" id="search-input" placeholder="Your first or last name" autocomplete="off" autofocus>
+      <div id="matches"></div>
+      <button type="button" id="not-me-link">First time volunteering here?</button>
+
+      <form id="new-volunteer-form" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name *</label>
+            <input type="text" id="firstName" name="firstName" required autocomplete="given-name">
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name *</label>
+            <input type="text" id="lastName" name="lastName" required autocomplete="family-name">
+          </div>
+        </div>
+        <div class="hp-field" aria-hidden="true">
+          <label for="website">Website</label>
+          <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+        </div>
+        <button type="submit" class="btn" style="width:100%">Check In</button>
+      </form>
+
+      <p class="status-msg" id="status-msg"></p>
+    </div>
+
+    <div id="not-pantry-day">
+      <span class="leaf-icon">📅</span>
+      <h1>No Pantry Today</h1>
+      <p class="subtitle">We're open Mondays, Fridays, and Saturdays. Thanks for checking!</p>
+    </div>
+
+    <div id="confirmation">
+      <span class="check-icon">✅</span>
+      <h2>You're checked in, <span id="confirmed-name"></span>!</h2>
+      <p>Thanks for volunteering today.</p>
+      <button type="button" class="btn btn-outline" id="check-in-another">Check In Someone Else</button>
+    </div>
+
+  </div>
+
+  <script src="volunteer-checkin.js"></script>
+</body>
+</html>

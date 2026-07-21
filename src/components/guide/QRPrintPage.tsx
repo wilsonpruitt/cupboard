@@ -4,6 +4,7 @@ import { ArrowLeft, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const APP_URL = 'https://st-mark-pantry.vercel.app';
+const VOLUNTEER_CHECKIN_URL = `${APP_URL}/site/volunteer-checkin.html`;
 
 function QRCard() {
   return (
@@ -13,6 +14,21 @@ function QRCard() {
       </p>
       <QRCodeSVG value={APP_URL} size={128} level="M" />
       <p className="text-sm font-medium print:text-black">Scan to open the app</p>
+    </div>
+  );
+}
+
+function VolunteerCheckInPoster() {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-gray-300 p-8 print:border-gray-400">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground print:text-black/60">
+        Volunteers
+      </p>
+      <QRCodeSVG value={VOLUNTEER_CHECKIN_URL} size={200} level="M" />
+      <p className="text-base font-bold print:text-black">Scan to Check In</p>
+      <p className="text-xs text-muted-foreground print:text-black/60">
+        Post only where volunteers can see it during pantry hours
+      </p>
     </div>
   );
 }
@@ -40,6 +56,11 @@ export function QRPrintPage() {
       <p className="text-sm text-muted-foreground print:hidden">
         Print this page and cut along the dashed lines. Each QR code opens the pantry app.
       </p>
+
+      {/* Volunteer self check-in poster — printed separately, meant for one wall posting */}
+      <div className="print:break-after-page">
+        <VolunteerCheckInPoster />
+      </div>
 
       {/* 2x3 grid of QR cards */}
       <div className="grid grid-cols-2 gap-4 print:gap-2">
