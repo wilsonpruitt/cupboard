@@ -10,10 +10,21 @@ interface InterestBody {
   notes?: string;
   source?: string;
   planSummary?: string;
+  website?: string; // honeypot — hidden in the form, real people leave it empty
 }
 
 function escape(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+}
+
+// Bots here submit random-letter names ("xvygpsIHYPJbMidGgB") from Gmail addresses
+// padded with dots ("i.sa.zisa.ri.717@gmail.com"). Cheap shape checks, no external service.
+function looksLikeSpam(body: InterestBody, name: string, email: string): boolean {
+  if ((body.website ?? '').trim()) return true;
+  const gibberishName = name.length >= 10 && !/\s/.test(name) && (name.slice(1).match(/[A-Z]/g) ?? []).length >= 2;
+  const [local, domain] = email.toLowerCase().split('@');
+  const dottedGmail = /^(gmail|googlemail)\.com$/.test(domain ?? '') && (local.match(/\./g) ?? []).length >= 4;
+  return gibberishName || dottedGmail;
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -25,6 +36,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!name || !email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
     return res.status(400).json({ error: 'Name and a valid email are required.' });
   }
+
+  // Pretend success so bots get no signal to adapt to; nothing is emailed or stored.
+  if (looksLikeSpam(body, name, email)) return res.status(200).json({ ok: true });
 
   const organization = (body.organization ?? '').trim();
   const program = (body.program ?? '').trim();
